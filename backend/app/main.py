@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.api.upload import router as upload_router
-from app.api.ask import router as ask_router
+from backend.app.api.upload import router as upload_router
+from backend.app.api.ask import router as ask_router
 
 app = FastAPI()
 

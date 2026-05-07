@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.services.embedding import get_embedding
-from app.services.retrieval import search_similar
+from backend.app.services.embedding import get_embedding
+from backend.app.services.retrieval import search_similar
 import ollama
 
 router = APIRouter()
