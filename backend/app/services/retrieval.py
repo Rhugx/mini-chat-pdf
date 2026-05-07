@@ -17,7 +17,7 @@ def search_similar(
 
         query = text(
             """
-            SELECT content
+            SELECT content, page
             FROM documents
             WHERE doc_id = :doc_id
             ORDER BY embedding <=> CAST(:embedding AS vector)
@@ -37,6 +37,9 @@ def search_similar(
         rows = results.fetchall()
 
         return [
-            row[0]
+            {
+                "content": row[0],
+                "page": row[1]
+            }
             for row in rows
         ]

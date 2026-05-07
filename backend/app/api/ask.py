@@ -49,7 +49,8 @@ def ask_question(data: AskRequest):
     if not results:
 
         return {
-            "answer": "No relevant data found in document."
+            "answer": "No relevant data found in document.",
+            "sources": []
         }
 
     # Debug logs
@@ -58,12 +59,18 @@ def ask_question(data: AskRequest):
     for i, chunk in enumerate(results):
 
         print(
-            f"Chunk {i+1}: "
-            f"{chunk[:150]}..."
+            f"Chunk {i+1} "
+            f"(Page {chunk['page']}): "
+            f"{chunk['content'][:150]}..."
         )
 
     # Step 3: Build context
-    context = "\n\n".join(results)
+    context = "\n\n".join(
+        [
+            item["content"]
+            for item in results
+        ]
+    )
 
     # Step 4: Prompt
     prompt = f"""
@@ -108,7 +115,8 @@ Answer:
         ]
     )
 
-    # Step 7: Return answer
+    # Step 7: Return answer + sources
     return {
-        "answer": response["message"]["content"]
+        "answer": response["message"]["content"],
+        "sources": results
     }

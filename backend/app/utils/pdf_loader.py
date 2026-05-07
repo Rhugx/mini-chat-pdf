@@ -4,16 +4,8 @@ import re
 
 def clean_text(text):
 
-    # Remove excessive spaces between letters
     text = re.sub(
-        r'(?<=\\w)\\s(?=\\w)',
-        '',
-        text
-    )
-
-    # Normalize spaces
-    text = re.sub(
-        r'\\s+',
+        r'\s+',
         ' ',
         text
     )
@@ -25,9 +17,9 @@ def load_pdf(file_path):
 
     reader = PdfReader(file_path)
 
-    text = ""
+    pages = []
 
-    for page in reader.pages:
+    for i, page in enumerate(reader.pages):
 
         extracted = page.extract_text()
 
@@ -35,6 +27,11 @@ def load_pdf(file_path):
 
             cleaned = clean_text(extracted)
 
-            text += cleaned + "\\n"
+            pages.append(
+                {
+                    "page": i + 1,
+                    "text": cleaned
+                }
+            )
 
-    return text
+    return pages

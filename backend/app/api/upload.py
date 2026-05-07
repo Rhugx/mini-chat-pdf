@@ -1,84 +1,61 @@
 from fastapi import APIRouter, UploadFile, File
-from pydantic import BaseModel
-from app.services.embedding import get_embedding
-from app.services.store import store_embeddings
+import uuid
+import os
+
 from app.utils.pdf_loader import load_pdf
 from app.utils.chunking import chunk_text
-from sqlalchemy import text
-from app.core.database import engine
-import os
+
+from app.services.embedding import get_embedding
+from app.services.store import store_embeddings
 
 router = APIRouter()
 
-# -------------------------------
-# 🔹 DELETE OLD DOCUMENT DATA
-# -------------------------------
-def delete_old_doc(doc_id):
-    with engine.connect() as conn:
-        conn.execute(
-            text("DELETE FROM documents WHERE doc_id = :doc_id"),
-            {"doc_id": doc_id}
-        )
-        conn.commit()
 
-
-# -------------------------------
-# 🔹 TEXT UPLOAD
-# -------------------------------
-class UploadRequest(BaseModel):
-    text: str
-
-@router.post("/upload")
-def upload_text(data: UploadRequest):
-    embedding = get_embedding(data.text)
-    store_embedding(data.text, embedding, doc_id="manual")
-    return {"message": "Stored successfully"}
-
-
-# -------------------------------
-# 🔹 PDF UPLOAD (FINAL)
-# -------------------------------
 @router.post("/upload-pdf")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...)
+):
 
-    if not file.filename.endswith(".pdf"):
-        return {"error": "Please upload a valid PDF file"}
+    # Create temp directory
+    os.makedirs(
+        "temp_file",
+        exist_ok=True
+    )
 
-    file_path = f"temp_{file.filename}"
+    # Unique document ID
+    doc_id = str(uuid.uuid4())
 
-    # Save file
+    # Save uploaded PDF
+    file_path = f"temp_file/{file.filename}"
+
     with open(file_path, "wb") as f:
-        f.write(await file.read())
 
-    try:
-        text = load_pdf(file_path)
-    except Exception:
-        os.remove(file_path)
-        return {"error": "Invalid PDF"}
+        content = await file.read()
 
-    chunks = chunk_text(text)
+        f.write(content)
 
-    doc_id = file.filename
+    # Load PDF page-wise
+    pages = load_pdf(file_path)
 
-    # 🔥 remove old data
-    delete_old_doc(doc_id)
+    # Create chunks with metadata
+    chunks = chunk_text(pages)
 
-    stored_count = 0
+    # Generate embeddings
+    embeddings = [
+        get_embedding(
+            chunk["content"]
+        )
+        for chunk in chunks
+    ]
 
-    for chunk in chunks:
-        if chunk.strip() and len(chunk) > 50:
-            embedding = get_embedding(chunk)
-            store_embeddings(
-    [chunk],
-    [embedding],
-    doc_id
-)
-            stored_count += 1
-
-    os.remove(file_path)
+    # Store in pgvector
+    store_embeddings(
+        chunks,
+        embeddings,
+        doc_id
+    )
 
     return {
-        "message": "PDF processed successfully",
-        "doc_id": doc_id,
-        "chunks_stored": stored_count
+        "message": "PDF uploaded successfully",
+        "doc_id": doc_id
     }
