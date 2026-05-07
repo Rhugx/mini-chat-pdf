@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from backend.app.core.database import engine
+from app.core.database import engine
 
 def store_embedding(content, embedding, doc_id):
     # Convert embedding list → string format

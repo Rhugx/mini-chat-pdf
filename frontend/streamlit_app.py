@@ -3,7 +3,7 @@ import requests
 
 st.title("📄 Chat with PDF")
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://backend:8000"
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])

@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from backend.app.core.database import engine
+from app.core.database import engine
 
 def search_similar(embedding, doc_id, top_k=5):
     embedding_str = "[" + ",".join(map(str, embedding)) + "]"

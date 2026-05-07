@@ -1,11 +1,11 @@
 from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
-from backend.app.services.embedding import get_embedding
-from backend.app.services.store import store_embedding
-from backend.app.utils.pdf_loader import load_pdf
-from backend.app.utils.chunking import chunk_text
+from app.services.embedding import get_embedding
+from app.services.store import store_embedding
+from app.utils.pdf_loader import load_pdf
+from app.utils.chunking import chunk_text
 from sqlalchemy import text
-from backend.app.core.database import engine
+from app.core.database import engine
 import os
 
 router = APIRouter()

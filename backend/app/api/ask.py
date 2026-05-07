@@ -1,46 +1,54 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from backend.app.services.embedding import get_embedding
-from backend.app.services.retrieval import search_similar
+
+from app.services.embedding import get_embedding
+from app.services.retrieval import search_similar
+
 import ollama
 
 router = APIRouter()
 
+
 class AskRequest(BaseModel):
     question: str
-    doc_id: str   # 🔥 NEW
+    doc_id: str
+
 
 @router.post("/ask")
 def ask_question(data: AskRequest):
-    # Step 1: embedding
+
+    # Step 1: Generate embedding for user question
     embedding = get_embedding(data.question)
 
-    # Step 2: retrieve ONLY from this document
+    # Step 2: Retrieve relevant chunks
     if "summarize" in data.question.lower():
         results = search_similar(embedding, data.doc_id, top_k=15)
     else:
         results = search_similar(embedding, data.doc_id, top_k=5)
 
     if not results:
-        return {"answer": "No relevant data found"}
+        return {
+            "answer": "No relevant data found"
+        }
 
-    # DEBUG
+    # DEBUG LOGS
     print("\n🔍 Retrieved Chunks:\n")
-    for i, chunk in enumerate(results):
-        print(f"Chunk {i+1}:\n{chunk}\n{'-'*50}")
 
-    # Step 3: context
+    for i, chunk in enumerate(results):
+        print(f"Chunk {i+1}:\n{chunk}\n{'-' * 50}")
+
+    # Step 3: Build context
     context = "\n\n".join(results)
 
-    # Step 4: prompt
+    # Step 4: Prompt
     prompt = f"""
 You are a strict document extraction system.
 
 RULES:
 - Use ONLY the provided context
 - DO NOT add external knowledge
-- DO NOT assume anything
 - DO NOT hallucinate
+- If answer is not present, say "Answer not found in document"
 
 TASK:
 Answer the question using only the context.
@@ -54,9 +62,14 @@ Question:
 Answer:
 """
 
-    # Step 5: LLM
-    response = ollama.chat(
-        model='mistral',
+    # Step 5: Connect to Ollama running on HOST machine
+    client = ollama.Client(
+        host="http://host.docker.internal:11434"
+    )
+
+    # Step 6: Generate response
+    response = client.chat(
+        model="mistral",
         options={
             "temperature": 0.0
         },
@@ -72,6 +85,7 @@ Answer:
         ]
     )
 
+    # Step 7: Return answer
     return {
-        "answer": response['message']['content']
+        "answer": response["message"]["content"]
     }

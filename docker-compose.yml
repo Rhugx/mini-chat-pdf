@@ -1,17 +1,63 @@
-version: '3.8'
+
 
 services:
+
   postgres:
     image: ankane/pgvector
     container_name: pgvector-db
+
     ports:
       - "5433:5432"
+
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vectordb
+
     restart: always
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   valkey:
     image: valkey/valkey
+
     container_name: valkey-cache
+
     ports:
       - "6379:6379"
+
+    restart: always
+
+  backend:
+    build: ./backend
+
+    container_name: fastapi-backend
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - postgres
+      - valkey
+
+    env_file:
+      - .env
+
+    restart: always
+
+  frontend:
+    build: ./frontend
+
+    container_name: streamlit-frontend
+
+    ports:
+      - "8501:8501"
+
+    depends_on:
+      - backend
+
+    restart: always
+
+volumes:
+  postgres_data:
