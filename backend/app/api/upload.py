@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
 from app.services.embedding import get_embedding
-from app.services.store import store_embedding
+from app.services.store import store_embeddings
 from app.utils.pdf_loader import load_pdf
 from app.utils.chunking import chunk_text
 from sqlalchemy import text
@@ -68,7 +68,11 @@ async def upload_pdf(file: UploadFile = File(...)):
     for chunk in chunks:
         if chunk.strip() and len(chunk) > 50:
             embedding = get_embedding(chunk)
-            store_embedding(chunk, embedding, doc_id)
+            store_embeddings(
+    [chunk],
+    [embedding],
+    doc_id
+)
             stored_count += 1
 
     os.remove(file_path)

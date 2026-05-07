@@ -10,3 +10,5 @@ requests
 valkey
 python-multipart
 ollama
+langchain
+langchain-text-splitters

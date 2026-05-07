@@ -25,17 +25,20 @@ class AskRequest(BaseModel):
 @router.post("/ask")
 def ask_question(data: AskRequest):
 
-    # Step 1: Generate embedding for question
+    # Step 1: Generate embedding
     embedding = get_embedding(data.question)
 
     # Step 2: Retrieve similar chunks
     if "summarize" in data.question.lower():
+
         results = search_similar(
             embedding,
             data.doc_id,
             top_k=15
         )
+
     else:
+
         results = search_similar(
             embedding,
             data.doc_id,
@@ -44,6 +47,7 @@ def ask_question(data: AskRequest):
 
     # No results found
     if not results:
+
         return {
             "answer": "No relevant data found in document."
         }
@@ -52,12 +56,16 @@ def ask_question(data: AskRequest):
     print("\n🔍 Retrieved Chunks:\n")
 
     for i, chunk in enumerate(results):
-        print(f"Chunk {i+1}:\n{chunk}\n{'-' * 50}")
+
+        print(
+            f"Chunk {i+1}: "
+            f"{chunk[:150]}..."
+        )
 
     # Step 3: Build context
     context = "\n\n".join(results)
 
-    # Step 4: Prompt engineering
+    # Step 4: Prompt
     prompt = f"""
 You are a strict document extraction system.
 
@@ -100,7 +108,7 @@ Answer:
         ]
     )
 
-    # Step 7: Return final answer
+    # Step 7: Return answer
     return {
         "answer": response["message"]["content"]
     }

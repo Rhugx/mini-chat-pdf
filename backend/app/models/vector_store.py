@@ -5,11 +5,18 @@ from app.core.database import Base
 
 
 class Document(Base):
+
     __tablename__ = "documents"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     doc_id = Column(Text)
+
+    page = Column(Integer)
 
     content = Column(Text)
 

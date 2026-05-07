@@ -21,6 +21,7 @@ if "doc_id" not in st.session_state:
 
 # Sidebar
 with st.sidebar:
+
     st.header("📤 Upload PDF")
 
     uploaded_file = st.file_uploader(
@@ -34,7 +35,9 @@ with st.sidebar:
             "file": uploaded_file
         }
 
-        with st.spinner("Uploading and processing PDF..."):
+        with st.spinner(
+            "Uploading and processing PDF..."
+        ):
 
             response = requests.post(
                 f"{BASE_URL}/upload-pdf",
@@ -47,29 +50,58 @@ with st.sidebar:
 
             st.session_state.doc_id = data["doc_id"]
 
-            st.success("✅ PDF uploaded successfully!")
+            st.success(
+                "✅ PDF uploaded successfully!"
+            )
 
         else:
+
             st.error("❌ Upload failed")
 
 
 # Main Chat Area
 st.subheader("💬 Chat with your PDF")
 
+# Warning banner
+st.info(
+    "⚠ Beta Version: This AI assistant is currently under testing. "
+    "Use clear prompts for best results."
+)
 
-# Display previous chat messages
+
+# Display chat history
 for message in st.session_state.messages:
 
     with st.chat_message(message["role"]):
 
         st.markdown(message["content"])
 
+        # Show sources if available
+        if (
+            message["role"] == "assistant"
+            and "sources" in message
+        ):
+
+            if message["sources"]:
+
+                st.markdown("---")
+
+                st.markdown("### 📚 Sources")
+
+                for source in message["sources"]:
+
+                    with st.expander(
+                        f"Page {source['page']}"
+                    ):
+
+                        st.write(
+                            source["content"]
+                        )
+
 
 # Chat input
-question = st.chat_input("Ask something about your PDF...")
-st.caption(
-    "⚠ Beta Version: This AI assistant is currently under testing. "
-    "Use clear prompts for best results."
+question = st.chat_input(
+    "Ask something about your PDF..."
 )
 
 
@@ -78,7 +110,9 @@ if question:
     # Ensure PDF uploaded
     if not st.session_state.doc_id:
 
-        st.warning("⚠ Please upload a PDF first.")
+        st.warning(
+            "⚠ Please upload a PDF first."
+        )
 
     else:
 
@@ -92,9 +126,10 @@ if question:
 
         # Display user message
         with st.chat_message("user"):
+
             st.markdown(question)
 
-        # Generate AI response
+        # Assistant response
         with st.chat_message("assistant"):
 
             with st.spinner("Thinking..."):
@@ -111,18 +146,47 @@ if question:
 
                 if response.status_code == 200:
 
-                    answer = response.json()["answer"]
+                    response_data = response.json()
+
+                    answer = response_data["answer"]
+
+                    sources = response_data.get(
+                        "sources",
+                        []
+                    )
 
                     st.markdown(answer)
 
-                    # Store assistant response
+                    # Show sources
+                    if sources:
+
+                        st.markdown("---")
+
+                        st.markdown(
+                            "### 📚 Sources"
+                        )
+
+                        for source in sources:
+
+                            with st.expander(
+                                f"Page {source['page']}"
+                            ):
+
+                                st.write(
+                                    source["content"]
+                                )
+
+                    # Save assistant message
                     st.session_state.messages.append(
                         {
                             "role": "assistant",
-                            "content": answer
+                            "content": answer,
+                            "sources": sources
                         }
                     )
 
                 else:
 
-                    st.error("❌ Failed to get response")
+                    st.error(
+                        "❌ Failed to get response"
+                    )

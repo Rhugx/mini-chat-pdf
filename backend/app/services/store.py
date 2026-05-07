@@ -1,22 +1,21 @@
-from sqlalchemy import text
-from app.core.database import engine
+from app.models.vector_store import Document
+from app.core.database import SessionLocal
 
-def store_embedding(content, embedding, doc_id):
-    # Convert embedding list → string format
-    embedding_str = "[" + ",".join(map(str, embedding)) + "]"
 
-    query = """
-    INSERT INTO documents (content, embedding, doc_id)
-    VALUES (:content, :embedding, :doc_id)
-    """
+def store_embeddings(chunks, embeddings, doc_id):
 
-    with engine.connect() as conn:
-        conn.execute(
-            text(query),
-            {
-                "content": content,
-                "embedding": embedding_str,  # ✅ NO ::vector
-                "doc_id": doc_id
-            }
+    db = SessionLocal()
+
+    for chunk, embedding in zip(chunks, embeddings):
+
+        doc = Document(
+            doc_id=doc_id,
+            content=chunk,
+            embedding=embedding
         )
-        conn.commit()
+
+        db.add(doc)
+
+    db.commit()
+
+    db.close()
