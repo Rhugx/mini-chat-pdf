@@ -1,10 +1,18 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from dotenv import load_dotenv
+import os
+import ollama
+
 from app.services.embedding import get_embedding
 from app.services.retrieval import search_similar
 
-import ollama
+# Load environment variables
+load_dotenv()
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
 
 router = APIRouter()
 
@@ -17,21 +25,30 @@ class AskRequest(BaseModel):
 @router.post("/ask")
 def ask_question(data: AskRequest):
 
-    # Step 1: Generate embedding for user question
+    # Step 1: Generate embedding for question
     embedding = get_embedding(data.question)
 
-    # Step 2: Retrieve relevant chunks
+    # Step 2: Retrieve similar chunks
     if "summarize" in data.question.lower():
-        results = search_similar(embedding, data.doc_id, top_k=15)
+        results = search_similar(
+            embedding,
+            data.doc_id,
+            top_k=15
+        )
     else:
-        results = search_similar(embedding, data.doc_id, top_k=5)
+        results = search_similar(
+            embedding,
+            data.doc_id,
+            top_k=5
+        )
 
+    # No results found
     if not results:
         return {
-            "answer": "No relevant data found"
+            "answer": "No relevant data found in document."
         }
 
-    # DEBUG LOGS
+    # Debug logs
     print("\n🔍 Retrieved Chunks:\n")
 
     for i, chunk in enumerate(results):
@@ -40,18 +57,16 @@ def ask_question(data: AskRequest):
     # Step 3: Build context
     context = "\n\n".join(results)
 
-    # Step 4: Prompt
+    # Step 4: Prompt engineering
     prompt = f"""
 You are a strict document extraction system.
 
 RULES:
 - Use ONLY the provided context
-- DO NOT add external knowledge
+- DO NOT use outside knowledge
 - DO NOT hallucinate
-- If answer is not present, say "Answer not found in document"
-
-TASK:
-Answer the question using only the context.
+- If answer is unavailable, say:
+  "Answer not found in document"
 
 Context:
 {context}
@@ -62,21 +77,21 @@ Question:
 Answer:
 """
 
-    # Step 5: Connect to Ollama running on HOST machine
+    # Step 5: Connect to Ollama
     client = ollama.Client(
-        host="http://host.docker.internal:11434"
+        host=OLLAMA_HOST
     )
 
     # Step 6: Generate response
     response = client.chat(
-        model="mistral",
+        model=OLLAMA_MODEL,
         options={
             "temperature": 0.0
         },
         messages=[
             {
                 "role": "system",
-                "content": "Answer only from given context."
+                "content": "Answer only using provided context."
             },
             {
                 "role": "user",
@@ -85,7 +100,7 @@ Answer:
         ]
     )
 
-    # Step 7: Return answer
+    # Step 7: Return final answer
     return {
         "answer": response["message"]["content"]
     }
