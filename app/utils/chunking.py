@@ -14,7 +14,7 @@ def chunk_text(text, chunk_size=500, overlap=100):
             current_chunk = sentence
 
     if current_chunk:
-        chunks.append(current_chunk.strip())
+        chunks.append(current_chunk.strip( ))
 
     # Add overlap
     overlapped_chunks = []
